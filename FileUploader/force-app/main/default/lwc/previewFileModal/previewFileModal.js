@@ -7,6 +7,10 @@ export default class PreviewFileModal extends LightningElement {
     @api fileExtension;
     @api currentFileIndex;
     @api tableFiles = [];
+    @track privateUrl;
+    @track privateFileExtension;
+    @track privateCurrentFileIndex;
+    @track privateTableFiles = [];
     isPreviousDisabled = true;
     isNextDisabled = false;
     showFrame = false;
@@ -15,11 +19,6 @@ export default class PreviewFileModal extends LightningElement {
     isPreviewAvailable = false;
     downloadUrl;
     modalStyle;
-    @track privateUrl;
-    @track privateFileExtension;
-    @track privateCurrentFileIndex;
-    @track privateTableFiles = [];
-
     hasRendered = false;
 
     renderedCallback() {
@@ -38,9 +37,7 @@ export default class PreviewFileModal extends LightningElement {
             // Prevent further execution
             this.hasRendered = true;
         }
-        
     }
-
 
     @api show({ currentFileIndex, fileExtension, tableFiles, url }) {
         this.initializeShowParams({ currentFileIndex, fileExtension, tableFiles, url });
@@ -54,6 +51,14 @@ export default class PreviewFileModal extends LightningElement {
         this.isLoading = false;
         this.showModal = true;
         
+    }
+    
+    get modalContentClasses() {
+        let additionalClass = 'no-scroll';
+        if (this.isPreviewAvailable) {
+            additionalClass = 'yes-scroll';
+        }
+        return `slds-modal__content ${additionalClass}`;
     }
 
     initializeShowParams({ currentFileIndex, fileExtension, tableFiles, url }) {
@@ -112,14 +117,6 @@ export default class PreviewFileModal extends LightningElement {
                 tableFiles = this.privateTableFiles, url = currentFile.downloadUrl;
             this.show({ currentFileIndex, fileExtension, tableFiles, url });
         }
-    }
-
-    get modalContentClasses() {
-        let additionalClass = 'no-scroll';
-        if (this.isPreviewAvailable) {
-            additionalClass = 'yes-scroll';
-        }
-        return `slds-modal__content ${additionalClass}`;
     }
 
     closeModal() {

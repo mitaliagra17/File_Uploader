@@ -11,18 +11,18 @@ import { refreshApex } from '@salesforce/apex';
 export default class FileManager extends LightningElement {
     @api recordId;
     @api objectApiName;
-    fields = ['$objectApiName.Name'];
     @track objectLabel;
+    @track cardTitle;
+    @track recordName;
+    @track sortBy;
+    @track sortDirection;
+    fields = ['$objectApiName.Name'];
     fileData = [];
     fileDataOriginal = [];
     filesToUpload = initialFileCount;
     uploadedFiles = initialFileCount;
     fileUrl;
     wiredFilesResult;
-    @track cardTitle;
-    @track recordName;
-    @track sortBy;
-    @track sortDirection;
     fileType;
     isLoading = false;
     isDeleteModalOpen = false;
@@ -65,38 +65,6 @@ export default class FileManager extends LightningElement {
         else if (error) { this.showToast('Error loading Files', error.body.message, 'error'); }
     }
 
-    sortFilesByCreatedDate(files) { return files.sort((file1, file2) => new Date(file2.createdDate) - new Date(file1.createdDate)); }
-
-    updateCardTitle() { if (this.objectLabel && this.recordName) { this.cardTitle = `Attach Files to ${this.objectLabel} - ${this.recordName}`; } }
-
-    handleSuccessMessage() {
-        this.uploadedFiles += 1;
-        this.processedFiles += 1;
-        refreshApex(this.wiredFilesResult);
-        this.handleRefresh();
-    }
-
-    handleErrorMessage(messageData) {
-        if (messageData.message === 'File size too large') { this.failedFiles.push(messageData.filename); } 
-        else if (messageData.message === 'Storage limit exceeded') { this.storageLimitFiles.push(messageData.filename); }
-        this.processedFiles += 1;
-    }
-
-    checkUploadCompletion() { if (this.processedFiles === this.filesToUpload) { this.completeUploadProcess(); } }
-
-    handleMessageEvent = (event) => {
-        try {
-            const messageData = JSON.parse(event.data);
-            if (messageData.status === 'success') { this.handleSuccessMessage(); } 
-            else if (messageData.status === 'error') { this.handleErrorMessage(messageData); }
-            this.checkUploadCompletion();
-        } catch (error) {
-            this.failedFiles.push('Unknown Error');
-            this.processedFiles += 1;
-            this.checkUploadCompletion();
-        }
-    };
-
     connectedCallback() {
         const domainUrl = window.location.origin;
         if(this.namespace){ this.namespaceFrameSrc = `${domainUrl}/apex/${this.namespace}__fileUploader`; }
@@ -115,6 +83,40 @@ export default class FileManager extends LightningElement {
         STYLE.innerText = `.slds-form-element__label{ font-size: 13px; }`;
         this.template.querySelector('lightning-input').appendChild(STYLE);
     }
+
+    get fileCardTitle() { return `Existing Files (${this.fileData.length})`; }
+
+    sortFilesByCreatedDate(files) { return files.sort((file1, file2) => new Date(file2.createdDate) - new Date(file1.createdDate)); }
+
+    updateCardTitle() { if (this.objectLabel && this.recordName) { this.cardTitle = `Attach Files to ${this.objectLabel} - ${this.recordName}`; } }
+
+    handleMessageEvent = (event) => {
+        try {
+            const messageData = JSON.parse(event.data);
+            if (messageData.status === 'success') { this.handleSuccessMessage(); } 
+            else if (messageData.status === 'error') { this.handleErrorMessage(messageData); }
+            this.checkUploadCompletion();
+        } catch (error) {
+            this.failedFiles.push('Unknown Error');
+            this.processedFiles += 1;
+            this.checkUploadCompletion();
+        }
+    };
+
+    handleSuccessMessage() {
+        this.uploadedFiles += 1;
+        this.processedFiles += 1;
+        refreshApex(this.wiredFilesResult);
+        this.handleRefresh();
+    }
+
+    handleErrorMessage(messageData) {
+        if (messageData.message === 'File size too large') { this.failedFiles.push(messageData.filename); } 
+        else if (messageData.message === 'Storage limit exceeded') { this.storageLimitFiles.push(messageData.filename); }
+        this.processedFiles += 1;
+    }
+
+    checkUploadCompletion() { if (this.processedFiles === this.filesToUpload) { this.completeUploadProcess(); } }
 
     handleRefresh() { if (!import.meta.env.SSR) { this.dispatchEvent(new RefreshEvent()); } }
 
@@ -166,8 +168,6 @@ export default class FileManager extends LightningElement {
         else { this.fileData = this.fileDataOriginal; }
     }
 
-    get fileCardTitle() { return `Existing Files (${this.fileData.length})`; }
-
     doSorting(event) {
         const { fieldName: sortByField, sortDirection: sortDirectionField } = event.detail;
         this.fileData = sortData(this.fileData, sortByField, sortDirectionField);
@@ -183,7 +183,6 @@ export default class FileManager extends LightningElement {
         dropZone.classList.add('highlight');
         dragText.classList.add('text-highlight');
     }
-
 
     handleDragLeave(event) {
         event.preventDefault();
@@ -275,14 +274,6 @@ export default class FileManager extends LightningElement {
         if (previewModal) { previewModal.show({ currentFileIndex: this.currentFileIndex, fileExtension: this.fileType, tableFiles: this.dataTableFiles, url: this.fileUrl }); }
     }
 
-    closeDeleteModal() {
-        closeDeleteModal(this);
-    }
-
-    confirmDelete() {
-        confirmDelete(this);
-    }
-
     handleDelete(recordId) {
         deleteRecord(recordId)
             .then(() => {
@@ -293,5 +284,13 @@ export default class FileManager extends LightningElement {
                     })
             })
             .catch(error => { this.dispatchEvent( new ShowToastEvent({ message: error.body.message || 'An unknown error occurred', title: 'Error deleting file', variant: 'error' })); });
+    }
+
+    closeDeleteModal() {
+        closeDeleteModal(this);
+    }
+
+    confirmDelete() {
+        confirmDelete(this);
     }
 }
