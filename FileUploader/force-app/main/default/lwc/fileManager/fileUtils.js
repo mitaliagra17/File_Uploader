@@ -127,19 +127,36 @@ processFileData = (records) =>
             thumbnailFileCard: `/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB720BY480&versionId=${file.fields.ContentDocumentId.value}&operationContext=CHATTER&contentId=${file.fields.ContentDocumentId.value}`,
             type: fileType,
         };
-    }),
+    }).sort((file1, file2) => new Date(file2.createdDate) - new Date(file1.createdDate)),
 sortData = (data, sortBy, sortDirection) => {
     const EQUAL = 0,
-        GREATER = 1,
-        LESS = -1,
-
     compareValues = (valueA, valueB) => {
-        if (typeof valueA === 'string') {
-            return valueA.localeCompare(valueB);
-        } else if (typeof valueA === 'number' || valueA instanceof Date) {
-            if (valueA > valueB) {return GREATER};
-            if (valueA < valueB) {return LESS};
+        if (valueA == null) {return -1;} 
+        if (valueB == null) {return 1;}
+
+        // Convert values if sorting by date
+        if (sortBy === 'createdDate') {
+            valueA = new Date(valueA);
+            valueB = new Date(valueB);
         }
+
+        // Number sorting
+        const numA = parseFloat(valueA),
+        numB = parseFloat(valueB);
+        if (!isNaN(numA) && !isNaN(numB)) {
+            return numA - numB;
+        }
+
+        // String sorting (includes locale-aware numeric sorting)
+        if (typeof valueA === 'string' && typeof valueB === 'string') {
+            return valueA.localeCompare(valueB, undefined, { numeric: true });
+        }
+
+        // Date sorting
+        if (valueA instanceof Date && valueB instanceof Date) {
+            return valueA - valueB;
+        }
+
         return EQUAL;
     };
 

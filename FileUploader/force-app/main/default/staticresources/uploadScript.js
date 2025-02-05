@@ -1,5 +1,5 @@
 /* global sforce */
-const INCREAMENT_BY = 1, MAX_ALLOWED_FILE_SIZE = '52428800',
+const INCREAMENT_BY = 1, MAX_ALLOWED_FILE_SIZE = '49283072',
 createContentVersion = (filename, filecontent, recordId) => {
     const contentVersion = new sforce.SObject('ContentVersion');
     contentVersion.Title = filename;
