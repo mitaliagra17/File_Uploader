@@ -128,35 +128,18 @@ processFileData = (records) =>
             type: fileType,
         };
     }).sort((file1, file2) => new Date(file2.createdDate) - new Date(file1.createdDate)),
+/*eslint max-statements: ["error", 16]*/
 sortData = (data, sortBy, sortDirection) => {
-    const EQUAL = 0,
+    const EQUAL = 0, GREATER = 1, LESS = -1,
     compareValues = (valueA, valueB) => {
-        if (valueA == null) {return -1;} 
-        if (valueB == null) {return 1;}
-
-        // Convert values if sorting by date
-        if (sortBy === 'createdDate') {
-            valueA = new Date(valueA);
-            valueB = new Date(valueB);
-        }
-
-        // Number sorting
-        const numA = parseFloat(valueA),
-        numB = parseFloat(valueB);
-        if (!isNaN(numA) && !isNaN(numB)) {
-            return numA - numB;
-        }
-
-        // String sorting (includes locale-aware numeric sorting)
-        if (typeof valueA === 'string' && typeof valueB === 'string') {
-            return valueA.localeCompare(valueB, undefined, { numeric: true });
-        }
-
-        // Date sorting
-        if (valueA instanceof Date && valueB instanceof Date) {
-            return valueA - valueB;
-        }
-
+        if (valueA === null) {return LESS;} 
+        if (valueB === null) {return GREATER;}
+        let valA = valueA, valB = valueB;
+        if (sortBy === 'createdDate') { valA = new Date(valueA); valB = new Date(valueB);}
+        const numA = parseFloat(valA),numB = parseFloat(valB);
+        if (!isNaN(numA) && !isNaN(numB)) { return numA - numB; }
+        if (typeof valA === 'string' && typeof valB === 'string') { return valA.localeCompare(valB, 'en', { numeric: true }); }
+        if (valA instanceof Date && valB instanceof Date) { return valA - valB; }
         return EQUAL;
     };
 
