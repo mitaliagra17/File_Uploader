@@ -35,6 +35,7 @@ export default class FileManager extends LightningElement {
     // Track the number of processed files (both success and failure)
     processedFiles = initialFileCount;
     columns = columns;
+    sortedFileData;
     namespace = packageNameSpace;
     namespaceFrameSrc;
 
@@ -61,14 +62,17 @@ export default class FileManager extends LightningElement {
         this.wiredFilesResult = result;
         const { data, error } = result;
 
-        if (data) { this.fileData = this.sortFilesByCreatedDate(processFileData(data.records)); } 
+        if (data) { 
+            this.fileDataOriginal = processFileData(data.records); 
+            this.fileData = [...this.fileDataOriginal];  
+        } 
         else if (error) { this.showToast('Error loading Files', error.body.message, 'error'); }
     }
 
     connectedCallback() {
-        const domainUrl = window.location.origin;
+        let domainUrl = '';
+        if (!import.meta.env.SSR) { domainUrl = window.location.origin; }
         if(this.namespace){ this.namespaceFrameSrc = `${domainUrl}/apex/${this.namespace}__fileUploader`; }
-        else{ this.namespaceFrameSrc = '${domainUrl}/apex/fileUploader'; }
 
         // This ensures the code only runs in the browser
         if (!import.meta.env.SSR) { window.addEventListener('message', this.handleMessageEvent); }
@@ -85,8 +89,6 @@ export default class FileManager extends LightningElement {
     }
 
     get fileCardTitle() { return `Existing Files (${this.fileData.length})`; }
-
-    sortFilesByCreatedDate(files) { return files.sort((file1, file2) => new Date(file2.createdDate) - new Date(file1.createdDate)); }
 
     updateCardTitle() { if (this.objectLabel && this.recordName) { this.cardTitle = `Attach Files to ${this.objectLabel} - ${this.recordName}`; } }
 
@@ -179,7 +181,6 @@ export default class FileManager extends LightningElement {
         event.preventDefault();
         const dragText = this.template.querySelector('.drag-text'),
         dropZone = this.template.querySelector('.drop-zone');
-
         dropZone.classList.add('highlight');
         dragText.classList.add('text-highlight');
     }
@@ -188,7 +189,6 @@ export default class FileManager extends LightningElement {
         event.preventDefault();
         const dragText = this.template.querySelector('.drag-text'),
         dropZone = this.template.querySelector('.drop-zone');
-
         dropZone.classList.remove('highlight');
         dragText.classList.remove('text-highlight');
     }
@@ -197,10 +197,8 @@ export default class FileManager extends LightningElement {
         event.preventDefault();
         const dragText = this.template.querySelector('.drag-text'),
         dropZone = this.template.querySelector('.drop-zone'), { files } = event.dataTransfer;
-
         dropZone.classList.remove('highlight');
         dragText.classList.remove('text-highlight');
-
         this.uploadFiles(files);
     }
 
@@ -209,12 +207,10 @@ export default class FileManager extends LightningElement {
         if (fileInput) {
             // Store event handler in a variable to remove later
             const handleEnterKey = (event) => { if (event.key === 'Enter') { fileInput.click(); }};
-
             // Trigger file input click on Enter key press
             document.addEventListener('keydown', handleEnterKey);
             fileInput.click();
             fileInput.onchange = (event) => { this.handleFileChange(event); };
-
             // Clean up the event listener when the component is destroyed
             this.addEventListener('destroy', () => { document.removeEventListener('keydown', handleEnterKey); });
         }
@@ -235,7 +231,6 @@ export default class FileManager extends LightningElement {
         this.filesToUpload = files.length;
         this.uploadedFiles = 0;
         this.isLoading = true;
-
         for (let file = 0; file < files.length; file += INCREMENT_BY) {
             const fileToUpload = files[file];
             toBase64(fileToUpload)
