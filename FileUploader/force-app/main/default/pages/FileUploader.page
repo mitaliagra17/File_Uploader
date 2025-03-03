@@ -1,6 +1,6 @@
 <apex:page>
     <script type="text/javascript">__sfdcSessionId = '{!JSENCODE($Api.Session_Id)}';</script>
-    <apex:includeScript value="{!$Resource.connectionScript}" /> 
+    <apex:includeScript value="{!$Resource.connectionScript}" />
     <apex:includeScript value="{!$Resource.uploadScript}" />
     <body></body>
 </apex:page>
