@@ -94,13 +94,12 @@
 }
 
 .existingFilesBlock{
-    padding: 20px 0px; 
+    padding-top: 20px; 
     font-size: 16px;
 }
 
 .searchBox{
     margin-bottom: 15px;
-    margin-top: -14px;
 }
 
 .spinnerBox{
@@ -118,3 +117,5 @@
 .vfPageBox{
     display: none;
 }
+
+

@@ -1,5 +1,5 @@
 /* global sforce */
-const INCREAMENT_BY = 1, MAX_ALLOWED_FILE_SIZE = '49283072',
+const INCREAMENT_BY = 1, MAX_ALLOWED_FILE_SIZE = '49073356.8',
 createContentVersion = (filename, filecontent, recordId) => {
     const contentVersion = new sforce.SObject('ContentVersion');
     contentVersion.Title = filename;
@@ -40,7 +40,7 @@ processResult = (result, filename) => {
         }
     }
 },
-uploadContentVersion = function uploadContentVersion(recordId, filename, filecontent) {
+uploadContentVersion = function uploadContentVersion(recordId, filename, filecontent) {    
     if (filecontent.length > MAX_ALLOWED_FILE_SIZE) {
         handleError(filename, 'File size too large');
         return;
@@ -50,18 +50,17 @@ uploadContentVersion = function uploadContentVersion(recordId, filename, filecon
 
     try {
         const results = sforce.connection.create([contentVersion]);
-
         for (let index = 0; index < results.length; index += INCREAMENT_BY) {
             const result = results[index];
             processResult(result, filename);
-        }
-    } catch (exception) {
+        }        
+    } catch (exception) {        
         // Handle unexpected JavaScript exceptions
     }
 },
 uploadMessageHandler = (event) => {
-    try {
-            const fileContent = JSON.parse(event.data);
+    try {        
+            const fileContent = JSON.parse(event.data);            
             uploadContentVersion(
             fileContent.FirstPublishLocationId,
             fileContent.Title,
@@ -72,8 +71,8 @@ uploadMessageHandler = (event) => {
     }
 };
 
-if (typeof window !== 'undefined') {
-    // Directly assign the message handler
+if (typeof window !== 'undefined') {    
+    //Directly assign the message handler
     window.onmessage = uploadMessageHandler;
 
     // Cleanup by using beforeunload event
@@ -81,3 +80,8 @@ if (typeof window !== 'undefined') {
         window.onmessage = null;  
     };
 }
+
+
+
+
+

@@ -1,4 +1,5 @@
-const closeDeleteModal = function closeDeleteModal(component) {
+const SORT_AFTER = 1, SORT_BEFORE = -1,
+closeDeleteModal = function closeDeleteModal(component) {
     component.isDeleteModalOpen = false;
     component.fileToDelete = null;
 },
@@ -7,32 +8,30 @@ columns = [
         cellAttributes: {
             iconName: { fieldName: 'icon' }
         },
-        fieldName: 'name',
-        label: 'File Name', 
-        sortable: true
+        fieldName: 'fileUrl', 
+        label: 'File Name',
+        sortable: true,
+        type: 'url', 
+        typeAttributes: {
+            label: { fieldName: 'name' }, 
+            target: '_blank' 
+        },
     },
     { fieldName: 'type', label: 'Type', sortable: true, type: 'text' },
     { fieldName: 'size', label: 'Size', sortable: true, type: 'text' },
     { fieldName: 'createdDate', label: 'Created Date', sortable: true, type: 'date' },
     { fieldName: 'createdBy', label: 'Created By', sortable: true, type: 'text' },
     {
-        initialWidth: 75,
-        label: 'Delete',
-        type: 'button-icon',
-        typeAttributes: {
-            alternativeText: 'Delete',
-            disabled: false,
-            iconName: 'utility:delete',
-            name: 'delete',
-            title: 'Delete',
-            variant: 'border-filled'
+        fixedWidth: 100, 
+        label: 'Actions',
+        type: 'action',
+        typeAttributes: { 
+            rowActions: [
+                { iconName: 'utility:preview', label: 'Preview', name: 'viewFile' },
+                { iconName: 'utility:download', label: 'Download', name: 'downloadFile' },
+                { iconName: 'utility:delete', label: 'Delete', name: 'delete' }
+            ]
         }
-    },
-    {
-        label: 'View File',
-        resizable: false,
-        type: 'button',
-        typeAttributes: { label: 'View File', name: 'viewFile', variant: 'base' }  
     }
 ],
 confirmDelete = function confirmDelete(component) {
@@ -50,7 +49,28 @@ contentDocumentFields = [
     'ContentDocumentLink.ContentDocument.FileExtension',
     'ContentDocumentLink.ContentDocument.CreatedDate',
     'ContentDocumentLink.ContentDocument.LatestPublishedVersionId'
-],
+], 
+downloadFile = (row) => {
+    if (typeof window !== 'undefined'){
+        const link = document.createElement('a');
+        link.href = row.downloadUrl;
+        link.target = '_blank';
+        link.download = row.name;
+        link.click();
+    }
+},
+filterFiles = function filterFiles(fileDataOriginal, searchKey) {
+    if (!searchKey) {
+        return fileDataOriginal;
+    }
+
+    const lowerCaseSearchKey = searchKey.toLowerCase();
+
+    return fileDataOriginal.filter((file) =>
+        file.name.toLowerCase().includes(lowerCaseSearchKey) ||
+        file.type.toLowerCase().includes(lowerCaseSearchKey)
+    );
+},
 formatFileSize = function formatFileSize(sizeInBytes) {
     const BYTES_IN_UNIT = 1024, DECIMAL_PRECISION = 2, INCREMENT_BY = 1,
     SIZE_UNITS = [
@@ -114,45 +134,59 @@ initialFileCount = 0,
 processFileData = (records) =>
     records.map((file) => {
         const contentDocument = file.fields.ContentDocument.value.fields,
+            fileId = file.fields.ContentDocumentId.value,
             fileType = contentDocument.FileExtension.value.toLowerCase();
         return {
             ContentVersionId: contentDocument.LatestPublishedVersionId.value,
             createdBy: contentDocument.CreatedBy.value.fields.Name.value,
             createdDate: contentDocument.CreatedDate.value,
-            downloadUrl: `/sfc/servlet.shepherd/document/download/${file.fields.ContentDocumentId.value}`,
+            downloadUrl: `/sfc/servlet.shepherd/document/download/${fileId}`,
+            fileUrl: `/lightning/r/ContentDocument/${fileId}/view`,
             icon: getIconName(fileType),
-            id: file.fields.ContentDocumentId.value,
+            id: fileId,
             name: contentDocument.Title.value,
             size: formatFileSize(contentDocument.ContentSize.value),
             thumbnailFileCard: `/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB720BY480&versionId=${file.fields.ContentDocumentId.value}&operationContext=CHATTER&contentId=${file.fields.ContentDocumentId.value}`,
             type: fileType,
-        };
+        }
     }).sort((file1, file2) => new Date(file2.createdDate) - new Date(file1.createdDate)),
-/*eslint max-statements: ["error", 16]*/
 sortData = (data, sortBy, sortDirection) => {
-    const EQUAL = 0, GREATER = 1, LESS = -1,
-    compareValues = (valueA, valueB) => {
-        if (valueA === null) {return LESS;} 
-        if (valueB === null) {return GREATER;}
-        let valA = valueA, valB = valueB;
-        if (sortBy === 'createdDate') { valA = new Date(valueA); valB = new Date(valueB);}
-        const numA = parseFloat(valA),numB = parseFloat(valB);
-        if (!isNaN(numA) && !isNaN(numB)) { return numA - numB; }
-        if (typeof valA === 'string' && typeof valB === 'string') { return valA.localeCompare(valB, 'en', { numeric: true }); }
-        if (valA instanceof Date && valB instanceof Date) { return valA - valB; }
-        return EQUAL;
-    };
+    const parseFileSize = (sizeStr) => {
+    const BYTES_IN_KILOBYTE = 1024, ZERO_VALUE = 0, sizeMatch = sizeStr.match(/^(?<size>\d+(?:\.\d+)?)\s*(?<unit>bytes|KB|MB|GB)$/u), sizeUnitMapping = { "GB": 3, "KB": 1, "MB": 2, "bytes": 0 }, sizeUnitPower = sizeUnitMapping[sizeMatch.groups.unit] || ZERO_VALUE, sizeUnitValue = parseFloat(sizeMatch.groups.size);
 
-    return [...data].sort((col1, col2) => {
+    if (!sizeMatch) { return ZERO_VALUE };
+
+    return sizeUnitValue * (BYTES_IN_KILOBYTE ** sizeUnitPower);
+},
+sortDataHandler = (valA, valB) => {
+    const numA = parseFloat(valA), numB = parseFloat(valB);
+
+    if (!isNaN(numA) && !isNaN(numB)) { return numA - numB; }
+    return valA.localeCompare(valB);
+},
+/*eslint max-statements: ["error", 12]*/
+sortDataHelper = (valueA, valueB) => {
+    const valA = valueA.toString(), valB = valueB.toString();
+    if (valueA === null) { return SORT_AFTER; }
+    if (valueB === null) { return SORT_BEFORE; }
+    if (sortBy === 'name') { return valA.localeCompare(valB); }
+    if (sortBy === 'size') { return parseFileSize(valA) - parseFileSize(valB); }
+    if (sortBy === 'createdDate') { return new Date(valA) - new Date(valB); }
+
+    return sortDataHandler(valA, valB);
+},
+    sortedData = [...data].sort((col1, col2) => {
         const valueA = col1[sortBy] || '',
-            valueB = col2[sortBy] || '',
-            valuesComparison = compareValues(valueA, valueB);
+        valueB = col2[sortBy] || '',
+        valuesComparison = sortDataHelper(valueA, valueB);
 
-            if (sortDirection === 'asc') {
-                return valuesComparison;
-            } 
-            return -valuesComparison;
+        if(sortDirection === 'asc'){
+            return valuesComparison;
+        }
+        return -valuesComparison;
     });
+
+    return sortedData;
 },
 toBase64 = function toBase64(file) {
     return new Promise((resolve, reject) => {
@@ -167,4 +201,4 @@ toBase64 = function toBase64(file) {
     });
 };
 
-export { closeDeleteModal, columns, confirmDelete, contentDocumentFields, initialFileCount, processFileData, sortData, toBase64 };
+export { closeDeleteModal, columns, confirmDelete, contentDocumentFields, downloadFile, filterFiles, initialFileCount, processFileData, sortData, toBase64 };

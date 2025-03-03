@@ -1,0 +1,20 @@
+.slds-p-around_medium, .slds-p-around--medium {
+    padding-top: 0px !important;
+}
+
+.stylePara{
+    padding-top: 1em;
+}
+
+.existingFilesBlock{
+    padding-top: 20px; 
+    font-size: 16px;
+}
+
+.searchBox{
+    margin-bottom: 15px;
+}
+
+.deletePopupFooter{
+    margin-right: 1rem;
+}

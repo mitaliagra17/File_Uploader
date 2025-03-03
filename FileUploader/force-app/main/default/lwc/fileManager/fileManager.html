@@ -7,39 +7,70 @@
             <p class="displayFileNumber">{uploadedFiles} of {filesToUpload} files uploaded</p>
         </div>
     </template>
-    <!-- Section 1: File Drop Area -->
-    <lightning-card title={cardTitle}>
-        <div class="slds-p-around_medium">
-            <div class="drop-zone">
-                <div class="drop-area" ondragover={handleDragOver} ondragleave={handleDragLeave}
-                    ondrop={handleFileDrop}>
-                    <p class="drag-text">Drag and Drop files (max file size - 35MB) into this outlined area <br>or
-                        <br>Click to&nbsp;
-                        <a href="javascript:void(0)" onclick={handleFileSelect}>browse files</a>
-                    </p>
-                    <input type="file" multiple class="hidden-input" />
-                </div>
-                <iframe src={namespaceFrameSrc} data-id="uploadFrame" class="vfPageBox"></iframe>
-            </div>
-            <!-- Section 2: Existing Files -->
-            <div class="existingFilesBlock">
-                <span><b>{fileCardTitle}</b></span>
-            </div>
-            <div>
-                <!-- Search Bar -->
-                <lightning-input type="search" label="Search Files" class="searchBox" value={searchKey}
-                    onchange={handleSearch}>
-                </lightning-input>
-                <lightning-datatable key-field="id" data={fileData} columns={columns} hide-checkbox-column="true"
-                    onsort={doSorting} sorted-by={sortBy} sorted-direction={sortDirection}
-                    onrowaction={handleRowAction}>
-                </lightning-datatable>
-            </div>
-        </div>
-    </lightning-card>
 
-    <!-- Preview Modal Section -->
-    <c-preview-file-modal></c-preview-file-modal>
+    <!-- Quick Action Modal -->
+    <template if:true={isModalOpen}>
+        <lightning-quick-action-panel header="Upload & Manage Files">
+        
+            <!-- File Upload Section -->
+            <lightning-card title={cardTitle}>
+                <div class="slds-p-around_medium">
+                    <!-- Drag & Drop Upload -->
+                    <div class="drop-zone">
+                        <div class="drop-area" ondragover={handleDragOver} ondragleave={handleDragLeave} ondrop={handleFileDrop}>
+                            <p class="drag-text">Drag and Drop files (max file size - 35MB) into this area  
+                                <br>or  
+                                <br>Click to&nbsp;<a href="javascript:void(0)" onclick={handleFileSelect}>browse files</a>
+                            </p>
+                            <input type="file" multiple class="hidden-input" />
+                        </div>
+                        
+                        <!-- Visualforce Page for Upload -->
+                        <iframe src={namespaceFrameSrc} data-id="uploadFrame" class="vfPageBox"></iframe>
+                    </div>
+    
+                    <!-- Existing Files Section -->
+                    <div class="existingFilesBlock">
+                        <span><b>{fileCardTitle}</b></span>
+                    </div>
+                    <lightning-input type="search" placeholder="Search Files" class="searchBox" value={searchKey} onchange={handleSearch}>
+                    </lightning-input>
+    
+                    <!-- Files Table -->
+                    <div>
+                        <lightning-datatable key-field="id" data={fileData} columns={columns} hide-checkbox-column="true"
+                            onsort={doSorting} sorted-by={sortBy} sorted-direction={sortDirection} onrowaction={handleRowAction}>
+                        </lightning-datatable>
+                    </div>
+                </div>
+            </lightning-card>
+    
+            <!-- Footer Buttons -->
+            <div slot="footer"></div>
+    
+        </lightning-quick-action-panel>
+    </template>
+
+    <!-- Normal Display (Only When Not a Quick Action) -->
+    <template if:false={isModalOpen}>
+        <template if:false={isRecordPage}>
+        <lightning-card title={cardTitle}>
+            <div class="slds-p-around_medium">
+                <div class="drop-zone">
+                    <div class="drop-area" ondragover={handleDragOver} ondragleave={handleDragLeave}
+                        ondrop={handleFileDrop}>
+                        <p class="drag-text">Drag and Drop files (max file size - 35MB) into this outlined area <br>or
+                            <br>Click to&nbsp;
+                            <a href="javascript:void(0)" onclick={handleFileSelect}>browse files</a>
+                        </p>
+                        <input type="file" multiple class="hidden-input" />
+                    </div>
+                    <iframe src={namespaceFrameSrc} data-id="uploadFrame" class="vfPageBox"></iframe>
+                </div>
+            </div>
+        </lightning-card>
+    </template>
+    </template>
 
     <!-- Confirmation Modal for Delete -->
     <template if:true={isDeleteModalOpen}>
